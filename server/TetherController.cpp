@@ -59,6 +59,13 @@ int TetherController::setIpFwdEnabled(bool enable) {
 
     ALOGD("Setting IP forward enable = %d", enable);
 
+    // do not handle IP forwarding in a0 as this is done in CML
+    char property[PROPERTY_VALUE_MAX] = {0};
+    if (property_get("ro.trustme.a0", property, NULL) > 0 && atoi(property) == 1) {
+        ALOGD("in a0 => Skipping IP forwarding setup.");
+        return 0;
+    }
+
     // In BP tools mode, do not disable IP forwarding
     char bootmode[PROPERTY_VALUE_MAX] = {0};
     property_get("ro.bootmode", bootmode, "unknown");
@@ -110,6 +117,13 @@ int TetherController::startTethering(int num_addrs, struct in_addr* addrs) {
     }
 
     ALOGD("Starting tethering services");
+
+    // do not start dnsmasq for a0 as this is allready running in CML
+    char property[PROPERTY_VALUE_MAX] = {0};
+    if (property_get("ro.trustme.a0", property, NULL) > 0 && atoi(property) == 1) {
+        ALOGD("in a0 => Skipping start of dnsmasq.");
+        return 0;
+    }
 
     pid_t pid;
     int pipefd[2];
