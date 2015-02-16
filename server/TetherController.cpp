@@ -90,6 +90,7 @@ TetherController::TetherController() {
     mDnsNetId = 0;
     mDaemonFd = -1;
     mDaemonPid = 0;
+
     if (inBpToolsMode()) {
         enableForwarding(BP_TOOLS_MODE);
     } else {
@@ -105,6 +106,12 @@ TetherController::~TetherController() {
 
 bool TetherController::setIpFwdEnabled() {
     bool success = true;
+    // do not handle IP forwarding in container as this is done in CML
+    char property[PROPERTY_VALUE_MAX] = {0};
+    if (property_get("ro.trustme.telephony", property, NULL) > 0 && atoi(property) == 1) {
+        ALOGD("in telephony container => Skipping IP forwarding setup.");
+        return success;
+    }
     const char* value = mForwardingRequests.empty() ? "0" : "1";
     ALOGD("Setting IP forward enable = %s", value);
     success &= writeToFile(IPV4_FORWARDING_PROC_FILE, value);
@@ -139,6 +146,13 @@ int TetherController::startTethering(int num_addrs, char **dhcp_ranges) {
     }
 
     ALOGD("Starting tethering services");
+
+    // do not start dnsmasq for container as this is allready running in CML
+    char property[PROPERTY_VALUE_MAX] = {0};
+    if (property_get("ro.trustme.telephony", property, NULL) > 0 && atoi(property) == 1) {
+        ALOGD("in telephony container => Skipping start of dnsmasq.");
+        return 0;
+    }
 
     pid_t pid;
     int pipefd[2];
