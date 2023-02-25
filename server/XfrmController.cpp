@@ -1342,7 +1342,16 @@ int XfrmController::fillUserSpInfo(const XfrmSpInfo& record, xfrm_userpolicy_inf
 
 void XfrmController::fillUserTemplate(const XfrmSpInfo& record, xfrm_user_tmpl* tmpl) {
     tmpl->id.daddr = record.dstAddr;
-    tmpl->id.spi = record.spi;
+
+    /* Don't set SPI in incoming policies to match documented rekeying behavior.
+     * Thereby, incoming packets with the former SPI are accepted until the
+     * corresponding SA is deallocated via close() */
+    if (record.direction == XfrmDirection::IN) {
+        tmpl->id.spi = 0;
+    } else {
+        tmpl->id.spi = record.spi;
+    }
+
     tmpl->id.proto = IPPROTO_ESP;
 
     tmpl->family = record.addrFamily;
